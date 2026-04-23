@@ -1,0 +1,17 @@
+{
+  "name": "BEE — Being Effective Executive",
+  "short_name": "BEE",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#1e2a38",
+  "description": "A 30-minute time log based on Peter Drucker's The Effective Executive. Plan the night before, tick what you followed, push to Google Sheets.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%231e2a38'/><text x='256' y='340' text-anchor='middle' font-family='Georgia,serif' font-size='280' fill='%23c8963e'>B</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
