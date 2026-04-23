@@ -234,6 +234,7 @@ main {
   display: flex; flex-direction: column;
   background: var(--surface);
 }
+.group-body[hidden] { display: none; }
 .main-body {
   background: var(--surface);
   border: 1px solid var(--line);
