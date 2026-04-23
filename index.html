@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1e2a38" />
+    <title>BEE — Being Effective Executive</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231e2a38'/><text x='32' y='42' text-anchor='middle' font-family='Georgia,serif' font-size='32' fill='%23c8963e'>B</text></svg>" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="top-inner">
+        <div class="brand">
+          <span class="brand-mark">B</span>
+          <div>
+            <div class="brand-title">BEE</div>
+            <div class="brand-sub">Being Effective Executive</div>
+          </div>
+        </div>
+        <div class="date">
+          <div class="dow" id="dow"></div>
+          <div class="dmy" id="dmy"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card quote">
+        <div class="quote-label">Drucker on effectiveness</div>
+        <blockquote id="quote">Loading…</blockquote>
+        <cite id="quote-source">— Peter F. Drucker</cite>
+      </section>
+
+      <section class="card pinned">
+        <div class="pinned-item pinned-urgent">
+          <span class="pin-icon">📌</span>
+          <div>
+            <strong>Right now:</strong> Get out of the house for work.
+          </div>
+        </div>
+        <div class="pinned-item" id="plan-tomorrow-banner" hidden>
+          <span class="pin-icon">🌙</span>
+          <div>
+            <strong>Plan tomorrow, tonight.</strong> Always. A plan made at 10pm beats one made at 8am.
+            <div><button class="ghost" id="open-tomorrow">Plan tomorrow →</button></div>
+          </div>
+        </div>
+        <div class="pinned-item pinned-soft">
+          <span class="pin-icon">✒️</span>
+          <div>The night‑before plan is the point. Morning is for execution, not invention.</div>
+        </div>
+      </section>
+
+      <section class="card score">
+        <div class="score-ring" id="score-ring" role="img" aria-label="Effectiveness score">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" class="ring-track" />
+            <circle cx="60" cy="60" r="52" class="ring-goal" id="ring-goal" />
+            <circle cx="60" cy="60" r="52" class="ring-fill" id="ring-fill" />
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct" id="ring-pct">0%</div>
+            <div class="ring-sub">of <strong>80%</strong> goal</div>
+          </div>
+        </div>
+        <div class="score-stats">
+          <div><span id="stat-points">0</span><small>points</small></div>
+          <div><span id="stat-planned">0</span><small>planned slots</small></div>
+          <div><span id="stat-streak">0</span><small>day streak ≥ 80%</small></div>
+        </div>
+      </section>
+
+      <section class="nav-row">
+        <button class="ghost" id="prev-day" aria-label="Previous day">‹</button>
+        <button class="ghost" id="today-btn">Today</button>
+        <button class="ghost" id="next-day" aria-label="Next day">›</button>
+        <div class="spacer"></div>
+        <button class="ghost" id="history-btn">History</button>
+      </section>
+
+      <section class="slots">
+        <div class="slot-group">
+          <button class="group-toggle" data-group="early" aria-expanded="false">
+            <span class="chev">▸</span> Early morning (12:00 – 06:00)
+            <span class="group-meta" id="meta-early"></span>
+          </button>
+          <div class="group-body" data-group-body="early" hidden></div>
+        </div>
+
+        <div class="group-body main-body" data-group-body="day"></div>
+
+        <div class="slot-group">
+          <button class="group-toggle" data-group="late" aria-expanded="false">
+            <span class="chev">▸</span> Late night (22:00 – 24:00)
+            <span class="group-meta" id="meta-late"></span>
+          </button>
+          <div class="group-body" data-group-body="late" hidden></div>
+        </div>
+      </section>
+
+      <section class="card actions">
+        <h3>Export &amp; sync</h3>
+        <div class="actions-row">
+          <button id="export-csv">Download CSV</button>
+          <button id="export-json">Download JSON</button>
+          <button id="copy-text">Copy today as text</button>
+        </div>
+        <div class="actions-row">
+          <button id="push-sheets" class="primary">Push to Google Sheet</button>
+          <button class="ghost" id="configure-sheets">Configure…</button>
+        </div>
+        <p class="muted small" id="sheets-status">Google Sheet not configured. <a href="#" id="sheets-help">How to set up →</a></p>
+      </section>
+
+      <section class="card tips">
+        <h3>How BEE works</h3>
+        <ul>
+          <li><strong>Plan the night before</strong>, in 30‑minute blocks. Non‑negotiable.</li>
+          <li>Next day, tap <strong>Did it</strong> if you executed the plan for that block. That's <strong>1 point</strong>.</li>
+          <li>If you drifted, tap <strong>Didn't</strong> and jot what you actually did — that's the data that makes next week's plan better.</li>
+          <li>Target: <strong>80%</strong> effectiveness. Drucker's time log rarely got higher.</li>
+          <li>Blank blocks don't score. Only planned blocks count toward the ratio.</li>
+        </ul>
+      </section>
+    </main>
+
+    <!-- Modals -->
+    <dialog id="history-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3>History</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body" id="history-body"></div>
+      </form>
+    </dialog>
+
+    <dialog id="sheets-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3>Google Sheet setup</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <p>BEE can push each day's log to a Google Sheet so you can track effectiveness across weeks and months.</p>
+          <ol class="small">
+            <li>Create a new Google Sheet.</li>
+            <li>Extensions → Apps Script. Paste the code from <code>google-apps-script.js</code> (in this repo) and save.</li>
+            <li>Deploy → New deployment → <em>Web app</em>. Execute as <em>Me</em>, access <em>Anyone</em>. Copy the URL.</li>
+            <li>Paste the URL below.</li>
+          </ol>
+          <label>
+            Web app URL
+            <input type="url" id="sheets-url" placeholder="https://script.google.com/macros/s/…/exec" />
+          </label>
+          <label>
+            Optional shared secret
+            <input type="text" id="sheets-secret" placeholder="optional — must match SECRET in Apps Script" />
+          </label>
+          <div class="actions-row">
+            <button type="button" id="save-sheets">Save</button>
+            <button type="button" class="ghost" id="test-sheets">Test push</button>
+            <button type="button" class="ghost danger" id="clear-sheets">Remove</button>
+          </div>
+          <p class="muted small" id="sheets-feedback"></p>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="deviation-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3 id="deviation-title">What did you actually do?</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <p class="muted small" id="deviation-sub"></p>
+          <textarea id="deviation-text" rows="3" placeholder="e.g. Got pulled into a Slack fire for 20 min, then answered emails."></textarea>
+          <div class="actions-row">
+            <button type="button" id="deviation-save">Save</button>
+            <button type="button" class="ghost" id="deviation-cancel">Cancel</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <footer>
+      <small>v1 · data stored on this device · <a href="#" id="wipe">wipe local data</a></small>
+    </footer>
+
+    <script src="quotes.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
