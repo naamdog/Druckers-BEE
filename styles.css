@@ -1,4 +1,4 @@
-/* BEE — Being Effective Executive */
+/* BEE — Becoming Effective Executives */
 
 :root {
   --bg: #faf8f3;
@@ -22,7 +22,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #11161d;
     --surface: #1a212b;
     --surface-2: #222a36;
@@ -38,6 +38,23 @@
     --red-soft: #3a1e1e;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #11161d;
+  --surface: #1a212b;
+  --surface-2: #222a36;
+  --ink: #f1ece0;
+  --ink-soft: #c5ccd8;
+  --muted: #8b94a3;
+  --line: #2a3342;
+  --gold: #e0b465;
+  --gold-soft: #3a2f1a;
+  --green: #6fc28d;
+  --green-soft: #1e3a29;
+  --red: #d97878;
+  --red-soft: #3a1e1e;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; }
@@ -94,9 +111,27 @@ a { color: var(--ink); }
 }
 .brand-title { font-family: var(--font-serif); font-weight: 700; font-size: 18px; letter-spacing: 0.02em; color: #f8f5ec; }
 .brand-sub { font-size: 11px; color: #d9cfb8; letter-spacing: 0.12em; text-transform: uppercase; }
+.top-right { display: flex; align-items: center; gap: 10px; }
 .date { text-align: right; }
 .date .dow { font-family: var(--font-serif); font-size: 18px; font-weight: 600; color: #f8f5ec; }
 .date .dmy { font-size: 12px; color: #d9cfb8; }
+.theme-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8f5ec;
+  width: 36px; height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 80ms ease;
+}
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.28); }
+.theme-toggle:active { transform: scale(0.95); }
+.theme-icon { display: inline-block; }
 
 /* ---------- Layout ---------- */
 main {

@@ -1,4 +1,4 @@
-# BEE — Being Effective Executive
+# BEE — Becoming Effective Executives
 
 A tiny, mobile-first time-log inspired by Peter Drucker's *The Effective Executive*.
 Plan the night before in 30-minute blocks. Next day, tick what you actually followed.

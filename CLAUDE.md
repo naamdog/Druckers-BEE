@@ -1,5 +1,7 @@
 # BEE — Druckers-BEE
 
+**BEE** stands for **Becoming Effective Executives**.
+
 A static, single-page PWA inspired by Peter Drucker's *The Effective Executive*.
 30-minute time-log with plan/actual columns, scoring 1 point per followed block,
 target 80% effectiveness.

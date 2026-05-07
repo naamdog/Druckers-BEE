@@ -1,4 +1,4 @@
-/* BEE — Being Effective Executive
+/* BEE — Becoming Effective Executives
    All data lives in localStorage under the key STORAGE_KEY.
    Structure:
      {
@@ -624,12 +624,52 @@
     renderSheetsStatus();
   }
 
+  // --------- Theme ---------
+  const THEME_KEY = "bee.theme";
+  const THEME_ORDER = ["auto", "light", "dark"];
+  const THEME_ICON  = { auto: "◐", light: "☀", dark: "☾" };
+  const THEME_LABEL = { auto: "Theme: auto (system)", light: "Theme: light", dark: "Theme: dark" };
+
+  function applyTheme(theme) {
+    if (theme === "light" || theme === "dark") {
+      document.documentElement.setAttribute("data-theme", theme);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    const btn = $("#theme-toggle");
+    const icon = $("#theme-icon");
+    if (icon) icon.textContent = THEME_ICON[theme] || THEME_ICON.auto;
+    if (btn) {
+      btn.title = THEME_LABEL[theme] || THEME_LABEL.auto;
+      btn.setAttribute("aria-label", btn.title);
+    }
+  }
+  function loadTheme() {
+    const t = localStorage.getItem(THEME_KEY);
+    return THEME_ORDER.includes(t) ? t : "auto";
+  }
+  function wireThemeToggle() {
+    const btn = $("#theme-toggle");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const cur = loadTheme();
+      const next = THEME_ORDER[(THEME_ORDER.indexOf(cur) + 1) % THEME_ORDER.length];
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+  }
+
   // --------- Boot ---------
+  // Apply saved theme as early as possible to avoid a flash of the wrong theme.
+  applyTheme(loadTheme());
+
   document.addEventListener("DOMContentLoaded", () => {
     wireGroupToggles();
     wireNav();
     wireButtons();
     wireSheetsModal();
+    wireThemeToggle();
+    applyTheme(loadTheme()); // re-apply now that #theme-icon exists
     renderAll();
     maybeShowPlanTomorrow();
   });
