@@ -66,7 +66,7 @@ a { color: var(--ink); }
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--ink);
+  background: #1e2a38;
   color: #f8f5ec;
   padding: max(env(safe-area-inset-top), 10px) 14px 10px;
   box-shadow: 0 1px 0 rgba(0,0,0,0.2);
@@ -86,16 +86,16 @@ a { color: var(--ink); }
   justify-content: center;
   width: 34px; height: 34px;
   border-radius: 9px;
-  background: var(--gold);
-  color: var(--ink);
+  background: #c8963e;
+  color: #1e2a38;
   font-family: var(--font-serif);
   font-weight: 700;
   font-size: 22px;
 }
-.brand-title { font-family: var(--font-serif); font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+.brand-title { font-family: var(--font-serif); font-weight: 700; font-size: 18px; letter-spacing: 0.02em; color: #f8f5ec; }
 .brand-sub { font-size: 11px; color: #d9cfb8; letter-spacing: 0.12em; text-transform: uppercase; }
 .date { text-align: right; }
-.date .dow { font-family: var(--font-serif); font-size: 18px; font-weight: 600; }
+.date .dow { font-family: var(--font-serif); font-size: 18px; font-weight: 600; color: #f8f5ec; }
 .date .dmy { font-size: 12px; color: #d9cfb8; }
 
 /* ---------- Layout ---------- */
