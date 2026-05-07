@@ -183,7 +183,7 @@ main {
   background: var(--surface-2);
   margin: 6px 0;
 }
-.pinned-item.pinned-urgent { background: var(--gold-soft); color: #3d2b08; }
+.pinned-item.pinned-urgent { background: var(--gold-soft); color: var(--ink); }
 .pinned-item.pinned-soft { color: var(--ink-soft); font-size: 14px; }
 .pin-icon { font-size: 18px; line-height: 1.2; }
 
@@ -366,10 +366,10 @@ button:hover { border-color: var(--ink-soft); }
 button:active { transform: translateY(1px); }
 button.primary {
   background: var(--ink);
-  color: #f8f5ec;
+  color: var(--bg);
   border-color: var(--ink);
 }
-button.primary:hover { background: #2a3a4e; }
+button.primary:hover { filter: brightness(0.92); }
 button.ghost {
   background: transparent;
   border-color: transparent;
