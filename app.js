@@ -479,10 +479,27 @@
     const avg30 = last30.length ? Math.round(last30.reduce((a,s) => a+s.pct, 0) / last30.length) : 0;
     const hit80 = last30.filter(s => s.pct >= 80).length;
     const best = series.reduce((b, s) => s.pct > (b?.pct ?? -1) ? s : b, null);
+
+    // Constraint hit rate over the last 30 days. A day counts if a
+    // constraint was set AND the linked card is now in the Done list.
+    ensureBoard();
+    const todayD = new Date();
+    let cSet = 0, cDone = 0;
+    for (let i = 0; i < 30; i++) {
+      const k = fmtDateKey(addDays(todayD, -i));
+      const cid = state.board.constraints?.[k];
+      if (!cid) continue;
+      cSet++;
+      const card = state.board.cards.find(c => c.id === cid);
+      if (card && card.listId === "done") cDone++;
+    }
+    const cPct = cSet ? Math.round((cDone / cSet) * 100) : null;
+
     summary.innerHTML = `
       <div><span>${avg30}%</span><small>30-day average</small></div>
       <div><span>${hit80}</span><small>days ≥ 80%</small></div>
-      <div><span>${best ? best.pct + "%" : "—"}</span><small>best day</small></div>`;
+      <div><span>${best ? best.pct + "%" : "—"}</span><small>best day</small></div>
+      <div><span>${cPct === null ? "—" : cPct + "%"}</span><small>constraint hit (30d)</small></div>`;
 
     $("#chart-line").innerHTML = renderLineChart(last30);
     $("#chart-bars").innerHTML = renderWeeklyBars(series);
@@ -952,12 +969,25 @@
   // Board (Trello-style task lists)
   // ============================================================
   const DEFAULT_LISTS = [
-    { id: "today", name: "Today" },
-    { id: "inbox", name: "Inbox" },
-    { id: "week",  name: "This week" },
-    { id: "done",  name: "Done" }
+    { id: "northstar", name: "🎯 North Star" },
+    { id: "today",     name: "Today" },
+    { id: "inbox",     name: "Inbox" },
+    { id: "week",      name: "This week" },
+    { id: "stop",      name: "Stop doing" },
+    { id: "someday",   name: "Someday" },
+    { id: "done",      name: "Done" }
   ];
-  let cardEditing = null; // id of card open in edit modal, or null
+  const PROTECTED_LIST_IDS = ["northstar", "today", "done"];
+  const DEFAULT_TAGS = [
+    { id: "tier1", label: "Tier 1", color: "red"    },
+    { id: "money", label: "$",      color: "green"  },
+    { id: "quick", label: "Quick",  color: "gold"   },
+    { id: "deep",  label: "Deep",   color: "navy"   },
+    { id: "imp",   label: "Imp",    color: "purple" },
+    { id: "del",   label: "Deleg",  color: "blue"   }
+  ];
+  let cardEditing = null;
+  let boardFilter = localStorage.getItem("bee.boardFilter") || "";
 
   function newId() { return Math.random().toString(36).slice(2, 10); }
 
@@ -968,10 +998,19 @@
     if (!Array.isArray(state.board.lists) || !state.board.lists.length) {
       state.board.lists = DEFAULT_LISTS.map(l => ({ ...l }));
     }
-    if (!state.board.lists.some(l => l.id === "today")) {
-      state.board.lists.unshift({ id: "today", name: "Today" });
+    // Seed any default list that's missing, preserving user customisations.
+    for (const def of DEFAULT_LISTS) {
+      if (!state.board.lists.some(l => l.id === def.id)) state.board.lists.unshift({ ...def });
     }
     if (!Array.isArray(state.board.cards)) state.board.cards = [];
+    if (!Array.isArray(state.board.tags) || !state.board.tags.length) {
+      state.board.tags = DEFAULT_TAGS.map(t => ({ ...t }));
+    }
+    if (!state.board.constraints || typeof state.board.constraints !== "object") {
+      state.board.constraints = {};
+    }
+    // Make sure every card has a tags array.
+    for (const c of state.board.cards) if (!Array.isArray(c.tags)) c.tags = [];
   }
 
   function addCard(listId, title) {
@@ -1023,7 +1062,7 @@
     scheduleBoardPush();
   }
   function deleteList(listId) {
-    if (["today", "done"].includes(listId)) return; // protect core lists
+    if (PROTECTED_LIST_IDS.includes(listId)) return; // protect core lists
     // Move any cards on this list back to Inbox (or create one if missing).
     if (!state.board.lists.some(l => l.id === "inbox")) {
       state.board.lists.push({ id: "inbox", name: "Inbox" });
@@ -1063,10 +1102,73 @@
     ensureBoard();
     const body = $("#board-body");
     body.innerHTML = "";
+
+    // North Star bar (full-width on top)
+    const northStar = state.board.lists.find(l => l.id === "northstar");
+    if (northStar) body.appendChild(renderBoardList(northStar));
+
+    // Filter chips
+    body.appendChild(renderTagFilter());
+
+    // Grid of every other list
+    const grid = document.createElement("div");
+    grid.className = "board-grid";
     for (const list of state.board.lists) {
-      body.appendChild(renderBoardList(list));
+      if (list.id === "northstar") continue;
+      grid.appendChild(renderBoardList(list));
     }
+    body.appendChild(grid);
+
     attachBoardSortables();
+  }
+
+  function renderTagFilter() {
+    const wrap = document.createElement("div");
+    wrap.className = "tag-filter";
+    const lbl = document.createElement("span");
+    lbl.className = "tag-filter-label";
+    lbl.textContent = "Filter:";
+    wrap.appendChild(lbl);
+    const all = document.createElement("button");
+    all.type = "button";
+    all.className = "tag-chip neutral" + (boardFilter ? "" : " active");
+    all.textContent = "All";
+    all.addEventListener("click", () => setBoardFilter(""));
+    wrap.appendChild(all);
+    for (const t of state.board.tags) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `tag-chip tag-${t.color}` + (boardFilter === t.id ? " active" : "");
+      b.textContent = t.label;
+      b.addEventListener("click", () => setBoardFilter(boardFilter === t.id ? "" : t.id));
+      wrap.appendChild(b);
+    }
+    return wrap;
+  }
+  function setBoardFilter(id) {
+    boardFilter = id || "";
+    localStorage.setItem("bee.boardFilter", boardFilter);
+    renderBoard();
+  }
+  function cardMatchesFilter(c) {
+    if (!boardFilter) return true;
+    return Array.isArray(c.tags) && c.tags.includes(boardFilter);
+  }
+  function tagById(id) {
+    return state.board.tags.find(t => t.id === id);
+  }
+  function constraintCardIdForCurrentDate() {
+    return state.board.constraints?.[currentDateKey] || null;
+  }
+  function constraintCardIdForToday() {
+    return state.board.constraints?.[todayKey()] || null;
+  }
+  function setConstraintForCurrentDate(value) {
+    ensureBoard();
+    if (value == null || value === "") delete state.board.constraints[currentDateKey];
+    else state.board.constraints[currentDateKey] = value;
+    saveState();
+    scheduleBoardPush();
   }
 
   // Attach drag-and-drop to every list's card column. Cards can move
@@ -1120,11 +1222,15 @@
   function renderBoardList(list) {
     const section = document.createElement("section");
     section.className = "board-list";
-    if (list.id === "today") section.classList.add("is-today");
-    if (list.id === "done")  section.classList.add("is-done");
+    if (list.id === "northstar") section.classList.add("is-northstar");
+    if (list.id === "today")     section.classList.add("is-today");
+    if (list.id === "done")      section.classList.add("is-done");
+    if (list.id === "stop")      section.classList.add("is-stop");
     section.dataset.listId = list.id;
 
-    const cards = state.board.cards.filter(c => c.listId === list.id);
+    const cards = state.board.cards
+      .filter(c => c.listId === list.id)
+      .filter(cardMatchesFilter);
 
     const head = document.createElement("div");
     head.className = "board-list-head";
@@ -1133,7 +1239,7 @@
     name.className = "list-name";
     name.type = "text";
     name.value = list.name;
-    name.readOnly = ["today", "inbox", "week", "done"].includes(list.id);
+    name.readOnly = [...PROTECTED_LIST_IDS, "inbox", "week", "stop", "someday"].includes(list.id);
     name.addEventListener("change", () => renameList(list.id, name.value));
     name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); name.blur(); } });
     h.appendChild(name);
@@ -1142,7 +1248,7 @@
     h.appendChild(count);
     head.appendChild(h);
 
-    if (!["today", "done"].includes(list.id)) {
+    if (!PROTECTED_LIST_IDS.includes(list.id)) {
       const menuBtn = document.createElement("button");
       menuBtn.className = "list-menu-btn ghost";
       menuBtn.type = "button";
@@ -1183,14 +1289,41 @@
     const art = document.createElement("article");
     art.className = "board-card";
     if (listId === "done") art.classList.add("is-done");
+    const isConstraint = constraintCardIdForToday() === c.id;
+    if (isConstraint) art.classList.add("is-constraint");
     art.dataset.cardId = c.id;
 
     const body = document.createElement("div");
     body.className = "card-body";
+
+    // Title row, with optional constraint star prefix
     const title = document.createElement("div");
     title.className = "card-title";
-    title.textContent = c.title;
+    if (isConstraint) {
+      const star = document.createElement("span");
+      star.className = "constraint-star";
+      star.textContent = "★ ";
+      star.title = "Today's One Thing";
+      title.appendChild(star);
+    }
+    title.appendChild(document.createTextNode(c.title));
     body.appendChild(title);
+
+    // Tag chips
+    if (Array.isArray(c.tags) && c.tags.length) {
+      const tagRow = document.createElement("div");
+      tagRow.className = "card-tags";
+      for (const tid of c.tags) {
+        const t = tagById(tid);
+        if (!t) continue;
+        const chip = document.createElement("span");
+        chip.className = `tag-chip small tag-${t.color}`;
+        chip.textContent = t.label;
+        tagRow.appendChild(chip);
+      }
+      body.appendChild(tagRow);
+    }
+
     if (c.note) {
       const note = document.createElement("div");
       note.className = "card-note";
@@ -1202,7 +1335,7 @@
     const actions = document.createElement("div");
     actions.className = "card-actions";
 
-    if (listId !== "today") {
+    if (listId !== "today" && listId !== "northstar") {
       const todayBtn = document.createElement("button");
       todayBtn.type = "button";
       todayBtn.className = "card-action today";
@@ -1235,9 +1368,37 @@
     $("#card-note-input").value = c.note || "";
     const sel = $("#card-list-input");
     sel.innerHTML = state.board.lists.map(l => `<option value="${l.id}" ${l.id === c.listId ? "selected" : ""}>${escapeHtml(l.name)}</option>`).join("");
+
+    // Tag picker
+    const tagWrap = $("#card-tags-picker");
+    tagWrap.innerHTML = "";
+    const selected = new Set(c.tags || []);
+    for (const t of state.board.tags) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = `tag-chip tag-${t.color}` + (selected.has(t.id) ? " active" : "");
+      chip.dataset.tagId = t.id;
+      chip.textContent = t.label;
+      chip.addEventListener("click", () => {
+        if (selected.has(t.id)) selected.delete(t.id);
+        else selected.add(t.id);
+        chip.classList.toggle("active");
+        cardTagsPending = [...selected];
+      });
+      tagWrap.appendChild(chip);
+    }
+    cardTagsPending = [...selected];
+
+    // Today's constraint toggle
+    const tBtn = $("#card-set-constraint");
+    const isConstraint = constraintCardIdForToday() === cardId;
+    tBtn.textContent = isConstraint ? "★ Constraint (today)" : "Set as today's One Thing";
+    tBtn.classList.toggle("active", isConstraint);
+
     $("#card-modal").showModal();
     setTimeout(() => $("#card-title-input").focus(), 20);
   }
+  let cardTagsPending = [];
   function wireCardModal() {
     $("#card-save").addEventListener("click", () => {
       if (!cardEditing) return;
@@ -1245,10 +1406,11 @@
       const note = $("#card-note-input").value.trim();
       const listId = $("#card-list-input").value;
       if (!title) { alert("Title is required."); return; }
-      updateCard(cardEditing, { title, note, listId });
+      updateCard(cardEditing, { title, note, listId, tags: cardTagsPending });
       cardEditing = null;
       $("#card-modal").close();
       renderBoard();
+      renderConstraintWidget();
     });
     $("#card-today").addEventListener("click", () => {
       if (!cardEditing) return;
@@ -1257,18 +1419,184 @@
       $("#card-modal").close();
       renderBoard();
     });
+    $("#card-set-constraint").addEventListener("click", () => {
+      if (!cardEditing) return;
+      const cur = constraintCardIdForToday();
+      // Use the editing card's id (today's constraint regardless of currentDateKey).
+      const todayK = todayKey();
+      ensureBoard();
+      if (cur === cardEditing) delete state.board.constraints[todayK];
+      else state.board.constraints[todayK] = cardEditing;
+      saveState();
+      scheduleBoardPush();
+      $("#card-modal").close();
+      cardEditing = null;
+      renderBoard();
+      renderConstraintWidget();
+    });
     $("#card-delete").addEventListener("click", () => {
       if (!cardEditing) return;
       if (!confirm("Delete this card?")) return;
+      // If this card was a constraint, clear it.
+      for (const k of Object.keys(state.board.constraints || {})) {
+        if (state.board.constraints[k] === cardEditing) delete state.board.constraints[k];
+      }
       deleteCard(cardEditing);
       cardEditing = null;
       $("#card-modal").close();
       renderBoard();
+      renderConstraintWidget();
     });
   }
 
   // Sync
   let boardPushTimer = null;
+  // ---------- Daily Constraint widget ----------
+  // The "One Thing" for the currently-viewed day. Either a board card
+  // (by id) or a free-text value (object {text}). Stored at
+  // state.board.constraints[dateKey].
+  function renderConstraintWidget() {
+    ensureBoard();
+    const root = $("#constraint-widget");
+    if (!root) return;
+    const value = state.board.constraints[currentDateKey];
+    const dateLabel = currentDateKey === todayKey() ? "Today" : currentDateKey;
+
+    root.innerHTML = "";
+    const lbl = document.createElement("div");
+    lbl.className = "constraint-label";
+    lbl.textContent = `${dateLabel}'s One Thing`;
+    root.appendChild(lbl);
+
+    if (!value) {
+      const empty = document.createElement("div");
+      empty.className = "constraint-empty";
+      empty.innerHTML = `
+        <form class="constraint-add" id="constraint-add-form">
+          <input id="constraint-add-input" type="text" placeholder="What's the one thing that matters today?" />
+          <button class="primary" type="submit">Set</button>
+        </form>
+        <p class="muted small">Or <button type="button" class="link" id="constraint-pick">pick from board →</button></p>
+      `;
+      root.appendChild(empty);
+      $("#constraint-add-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = $("#constraint-add-input").value.trim();
+        if (!v) return;
+        const id = newId();
+        state.board.cards.push({
+          id, listId: "today", title: v, note: "",
+          createdAt: new Date().toISOString(), completedAt: null, tags: ["tier1"]
+        });
+        state.board.constraints[currentDateKey] = id;
+        saveState();
+        scheduleBoardPush();
+        renderConstraintWidget();
+      });
+      $("#constraint-pick").addEventListener("click", openConstraintPicker);
+      return;
+    }
+
+    // Linked to a card
+    const card = typeof value === "string"
+      ? state.board.cards.find(c => c.id === value)
+      : null;
+    const titleText = card ? card.title : (typeof value === "object" ? (value.text || "") : "");
+    const done = card?.listId === "done";
+
+    const box = document.createElement("div");
+    box.className = "constraint-set" + (done ? " is-done" : "");
+    const titleEl = document.createElement("div");
+    titleEl.className = "constraint-title";
+    titleEl.innerHTML = `<span class="constraint-star">★</span> ${escapeHtml(titleText)}`;
+    box.appendChild(titleEl);
+
+    if (card) {
+      // Tags row
+      if (Array.isArray(card.tags) && card.tags.length) {
+        const tagRow = document.createElement("div");
+        tagRow.className = "card-tags";
+        for (const tid of card.tags) {
+          const t = tagById(tid);
+          if (!t) continue;
+          const chip = document.createElement("span");
+          chip.className = `tag-chip small tag-${t.color}`;
+          chip.textContent = t.label;
+          tagRow.appendChild(chip);
+        }
+        box.appendChild(tagRow);
+      }
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "constraint-actions";
+
+    if (card && !done) {
+      const doneBtn = document.createElement("button");
+      doneBtn.type = "button";
+      doneBtn.className = "primary";
+      doneBtn.textContent = "Mark done ✓";
+      doneBtn.addEventListener("click", () => { moveCard(card.id, "done"); renderConstraintWidget(); renderBoard(); });
+      actions.appendChild(doneBtn);
+
+      const blockBtn = document.createElement("button");
+      blockBtn.type = "button";
+      blockBtn.className = "ghost";
+      blockBtn.textContent = "Block a slot…";
+      blockBtn.addEventListener("click", () => promptBlockConstraintSlot(card.title));
+      actions.appendChild(blockBtn);
+    }
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "ghost danger";
+    clearBtn.textContent = done ? "Unset" : "Change";
+    clearBtn.addEventListener("click", () => {
+      delete state.board.constraints[currentDateKey];
+      saveState();
+      scheduleBoardPush();
+      renderConstraintWidget();
+      renderBoard();
+    });
+    actions.appendChild(clearBtn);
+
+    box.appendChild(actions);
+    root.appendChild(box);
+  }
+
+  function openConstraintPicker() {
+    ensureBoard();
+    const candidates = state.board.cards.filter(c => c.listId !== "done");
+    if (!candidates.length) {
+      alert("No cards on the board yet. Type below to create one.");
+      return;
+    }
+    const lines = candidates.map((c, i) => `${i + 1}. ${c.title}`).join("\n");
+    const pick = prompt(`Pick a card by number:\n\n${lines}`);
+    if (!pick) return;
+    const idx = parseInt(pick, 10) - 1;
+    const c = candidates[idx];
+    if (!c) return;
+    state.board.constraints[currentDateKey] = c.id;
+    saveState();
+    scheduleBoardPush();
+    renderConstraintWidget();
+    renderBoard();
+  }
+
+  function promptBlockConstraintSlot(title) {
+    const slot = prompt("Which 15-min slot? Type as HH:MM (e.g. 09:00, 09:15, 09:30).", nowSlot());
+    if (!slot) return;
+    if (!/^\d{2}:\d{2}$/.test(slot) || !SLOTS.includes(slot)) {
+      alert("That's not a valid 15-min slot. Try HH:00, HH:15, HH:30, or HH:45.");
+      return;
+    }
+    const d = dayFor(currentDateKey);
+    d.plans[slot] = title;
+    saveState();
+    schedulePush(currentDateKey);
+    renderSlots();
+  }
+
   function scheduleBoardPush() {
     if (!session?.user) return;
     if (boardPushTimer) clearTimeout(boardPushTimer);
@@ -1588,6 +1916,7 @@
   function renderAll() {
     renderHeader();
     renderQuote();
+    renderConstraintWidget();
     renderSlots();
     renderSheetsStatus();
     renderCloudStatus();
