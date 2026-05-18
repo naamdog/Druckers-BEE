@@ -1237,9 +1237,34 @@
     renderCloudStatus();
   }
 
+  // One-tap auto-config: parse `#cloud=<url>|<key>` from the URL hash on
+  // first load, save it as the Supabase config, and strip it back out of
+  // the address bar so it doesn't sit in history forever.
+  function consumeCloudConfigFromUrl() {
+    if (!location.hash) return;
+    const m = location.hash.match(/[#&]cloud=([^&]+)/);
+    if (!m) return;
+    try {
+      const decoded = decodeURIComponent(m[1]);
+      const sep = decoded.indexOf("|");
+      const url = sep === -1 ? decoded : decoded.slice(0, sep);
+      const key = sep === -1 ? "" : decoded.slice(sep + 1);
+      if (url && key) {
+        state.supabase = { url, anonKey: key };
+        localStorage.removeItem(USE_LOCAL_KEY);
+        saveState();
+      }
+    } catch (e) {
+      console.warn("bad #cloud=", e);
+    }
+    const cleaned = location.hash.replace(/[#&]cloud=[^&]+/, "");
+    history.replaceState(null, "", location.pathname + location.search + (cleaned === "#" ? "" : cleaned));
+  }
+
   applyTheme(loadTheme());
 
   document.addEventListener("DOMContentLoaded", () => {
+    consumeCloudConfigFromUrl();
     migrate30to15();
     wireThemeToggle();
     wireGroupToggles();
