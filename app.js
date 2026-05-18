@@ -949,7 +949,7 @@
   // Auth
   async function initAuth() {
     const sb = getSupabase();
-    if (!sb) return;
+    if (!sb) { refreshAuthGate(); return; }
     try {
       const { data } = await sb.auth.getSession();
       session = data?.session || null;
@@ -960,23 +960,25 @@
     sb.auth.onAuthStateChange((_event, s) => {
       session = s;
       renderCloudStatus();
+      refreshAuthGate();
       if (s?.user) fullSync();
     });
     renderCloudStatus();
+    refreshAuthGate();
     if (session?.user) fullSync();
   }
   async function sendMagicLink() {
     const sb = getSupabase();
-    if (!sb) { flash("Configure Supabase first.", "#signin-feedback"); return; }
-    const email = $("#signin-email").value.trim();
-    if (!email) { flash("Enter your email.", "#signin-feedback"); return; }
-    $("#signin-feedback").textContent = "Sending…";
+    if (!sb) { authFeedback("Configure Supabase first.", true); return; }
+    const email = $("#auth-email").value.trim();
+    if (!email) { authFeedback("Enter your email.", true); return; }
+    authFeedback("Sending magic link…");
     try {
       const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
       if (error) throw error;
-      $("#signin-feedback").textContent = "Check your email for a magic link.";
+      authFeedback("Check your email for a magic link.");
     } catch (e) {
-      $("#signin-feedback").textContent = `Failed: ${e.message || e}`;
+      authFeedback(`Failed: ${e.message || e}`, true);
     }
   }
   async function signOut() {
@@ -1022,21 +1024,112 @@
       saveState();
       supabaseClient = null;
       session = null;
+      localStorage.removeItem(USE_LOCAL_KEY);
       $("#supabase-url").value = "";
       $("#supabase-key").value = "";
       $("#cloud-feedback").textContent = "Disconnected.";
       renderCloudStatus();
+      refreshAuthGate();
     });
   }
-  function wireSigninModal() {
-    $("#signin-btn").addEventListener("click", () => {
-      if (!getSupabase()) { openCloudModal(); return; }
-      $("#signin-feedback").textContent = "";
-      $("#signin-email").value = "";
-      $("#signin-modal").showModal();
+  // ============================================================
+  // Auth view (full-page login)
+  // ============================================================
+  // localStorage["bee.useLocal"] = "1" means user picked "Use locally"
+  // and we suppress the auth view even if Supabase is configured until
+  // they click "Sign in" again from the cloud card.
+  const USE_LOCAL_KEY = "bee.useLocal";
+  let authMode = "signin"; // 'signin' | 'signup'
+
+  function authFeedback(msg, isError = false) {
+    const el = $("#auth-feedback");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? "var(--red)" : "var(--muted)";
+  }
+  function showAuthView() {
+    authFeedback("");
+    $("#auth-view").hidden = false;
+    $("#app-view").hidden = true;
+    setTimeout(() => $("#auth-email")?.focus(), 30);
+  }
+  function showAppView() {
+    $("#auth-view").hidden = true;
+    $("#app-view").hidden = false;
+  }
+  function shouldGate() {
+    const cloudConfigured = !!(state.supabase?.url && state.supabase?.anonKey);
+    if (!cloudConfigured) return false;
+    if (session?.user) return false;
+    if (localStorage.getItem(USE_LOCAL_KEY) === "1") return false;
+    return true;
+  }
+  function refreshAuthGate() {
+    if (shouldGate()) showAuthView();
+    else showAppView();
+  }
+  function setAuthMode(mode) {
+    authMode = mode;
+    $$(".auth-tab").forEach(t => {
+      const active = t.dataset.mode === mode;
+      t.classList.toggle("active", active);
+      t.setAttribute("aria-selected", String(active));
     });
-    $("#send-magic").addEventListener("click", sendMagicLink);
-    $("#signout-btn").addEventListener("click", signOut);
+    const submit = $("#auth-submit");
+    submit.textContent = mode === "signup" ? "Create account" : "Sign in";
+    const pwd = $("#auth-password");
+    pwd.setAttribute("autocomplete", mode === "signup" ? "new-password" : "current-password");
+    pwd.minLength = mode === "signup" ? 6 : 6;
+    authFeedback("");
+  }
+  async function authSubmit(e) {
+    e.preventDefault();
+    const sb = getSupabase();
+    if (!sb) { authFeedback("Configure Supabase first.", true); return; }
+    const email = $("#auth-email").value.trim();
+    const password = $("#auth-password").value;
+    if (!email || !password) { authFeedback("Enter email and password.", true); return; }
+    $("#auth-submit").disabled = true;
+    authFeedback(authMode === "signup" ? "Creating account…" : "Signing in…");
+    try {
+      const fn = authMode === "signup" ? "signUp" : "signInWithPassword";
+      const { data, error } = await sb.auth[fn]({ email, password });
+      if (error) throw error;
+      if (authMode === "signup" && !data?.session) {
+        authFeedback("Account created. Check your email to confirm, then sign in.");
+        setAuthMode("signin");
+      } else if (data?.session) {
+        session = data.session;
+        renderCloudStatus();
+        refreshAuthGate();
+        fullSync();
+      }
+    } catch (err) {
+      authFeedback(`Failed: ${err.message || err}`, true);
+    } finally {
+      $("#auth-submit").disabled = false;
+    }
+  }
+  function wireAuthView() {
+    $$(".auth-tab").forEach(t => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
+    $("#auth-form").addEventListener("submit", authSubmit);
+    $("#auth-magic").addEventListener("click", sendMagicLink);
+    $("#auth-config").addEventListener("click", openCloudModal);
+    $("#auth-use-local").addEventListener("click", () => {
+      localStorage.setItem(USE_LOCAL_KEY, "1");
+      showAppView();
+    });
+
+    // Buttons inside the app's cloud card
+    $("#signin-btn").addEventListener("click", () => {
+      localStorage.removeItem(USE_LOCAL_KEY);
+      if (!getSupabase()) { openCloudModal(); return; }
+      showAuthView();
+    });
+    $("#signout-btn").addEventListener("click", async () => {
+      await signOut();
+      refreshAuthGate();
+    });
     $("#sync-now-btn").addEventListener("click", fullSync);
   }
 
@@ -1154,7 +1247,8 @@
     wireButtons();
     wireSheetsModal();
     wireCloudModal();
-    wireSigninModal();
+    wireAuthView();
+    setAuthMode("signin");
     wireTimer();
     renderAll();
     maybeShowPlanTomorrow();
