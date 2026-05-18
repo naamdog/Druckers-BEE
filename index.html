@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1e2a38" />
     <title>BEE — Becoming Effective Executives</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <link rel="stylesheet" href="styles.css?v=5" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231e2a38'/><text x='32' y='42' text-anchor='middle' font-family='Georgia,serif' font-size='32' fill='%23c8963e'>B</text></svg>" />
   </head>
@@ -30,6 +30,23 @@
         </div>
       </div>
     </header>
+
+    <div class="timer-pill" id="timer-pill" data-state="idle">
+      <button class="tp-btn tp-start" id="tp-start" aria-label="Start timer">▶</button>
+      <button class="tp-btn tp-pause" id="tp-pause" aria-label="Pause timer" hidden>⏸</button>
+      <button class="tp-btn tp-reset" id="tp-reset" aria-label="Reset timer">⟲</button>
+      <div class="tp-display">
+        <div class="tp-time" id="tp-time">15:00</div>
+        <div class="tp-label" id="tp-label">15-min timer</div>
+      </div>
+      <select class="tp-duration" id="tp-duration" aria-label="Timer duration">
+        <option value="5">5 min</option>
+        <option value="15" selected>15 min</option>
+        <option value="25">25 min</option>
+        <option value="45">45 min</option>
+        <option value="60">60 min</option>
+      </select>
+    </div>
 
     <main>
       <section class="card quote">
@@ -81,7 +98,9 @@
         <button class="ghost" id="prev-day" aria-label="Previous day">‹</button>
         <button class="ghost" id="today-btn">Today</button>
         <button class="ghost" id="next-day" aria-label="Next day">›</button>
+        <button class="ghost" id="scroll-now-btn" title="Jump to now">⤓ Now</button>
         <div class="spacer"></div>
+        <button class="ghost" id="trends-btn">Trends</button>
         <button class="ghost" id="history-btn">History</button>
       </section>
 
@@ -105,28 +124,43 @@
         </div>
       </section>
 
+      <section class="card cloud">
+        <h3>Cloud &amp; account</h3>
+        <p class="muted small" id="cloud-status">Not signed in — using local storage only.</p>
+        <div class="actions-row">
+          <button id="cloud-setup-btn">Cloud setup…</button>
+          <button id="signin-btn" class="primary">Sign in</button>
+          <button id="signout-btn" class="ghost" hidden>Sign out</button>
+          <button id="sync-now-btn" class="ghost" hidden>Sync now</button>
+        </div>
+      </section>
+
       <section class="card actions">
-        <h3>Export &amp; sync</h3>
+        <h3>Export</h3>
         <div class="actions-row">
           <button id="export-csv">Download CSV</button>
           <button id="export-json">Download JSON</button>
           <button id="copy-text">Copy today as text</button>
         </div>
-        <div class="actions-row">
-          <button id="push-sheets" class="primary">Push to Google Sheet</button>
-          <button class="ghost" id="configure-sheets">Configure…</button>
-        </div>
-        <p class="muted small" id="sheets-status">Google Sheet not configured. <a href="#" id="sheets-help">How to set up →</a></p>
+        <details class="sheets-details">
+          <summary>Legacy: push to Google Sheet</summary>
+          <div class="actions-row">
+            <button id="push-sheets" class="ghost">Push to Sheet</button>
+            <button class="ghost" id="configure-sheets">Configure…</button>
+          </div>
+          <p class="muted small" id="sheets-status">Google Sheet not configured.</p>
+        </details>
       </section>
 
       <section class="card tips">
         <h3>How BEE works</h3>
         <ul>
-          <li><strong>Plan the night before</strong>, in 30‑minute blocks. Non‑negotiable.</li>
-          <li>Next day, tap <strong>Did it</strong> if you executed the plan for that block. That's <strong>1 point</strong>.</li>
-          <li>If you drifted, tap <strong>Didn't</strong> and jot what you actually did — that's the data that makes next week's plan better.</li>
-          <li>Target: <strong>80%</strong> effectiveness. Drucker's time log rarely got higher.</li>
-          <li>Blank blocks don't score. Only planned blocks count toward the ratio.</li>
+          <li><strong>Plan the night before</strong>, in 15‑minute blocks. Non‑negotiable.</li>
+          <li>Next day, tap <strong>✓</strong> if you executed the plan for that block. That's <strong>1 point</strong>.</li>
+          <li>Drifted? Tap <strong>✗</strong> and jot what you actually did — data for next week's plan.</li>
+          <li>Tap <strong>▶</strong> on a row (or in the floating pill) to start a 15‑minute focus timer with a bell.</li>
+          <li>Target: <strong>80%</strong> effectiveness. Open <strong>Trends</strong> to see the curve.</li>
+          <li>Blank blocks don't score — only planned blocks count.</li>
         </ul>
       </section>
     </main>
@@ -142,6 +176,76 @@
       </form>
     </dialog>
 
+    <dialog id="trends-modal" class="modal modal-wide">
+      <form method="dialog">
+        <header>
+          <h3>Trends</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body" id="trends-body">
+          <div class="trends-summary" id="trends-summary"></div>
+          <h4>Last 30 days · daily effectiveness</h4>
+          <div class="chart-wrap" id="chart-line"></div>
+          <h4>Last 12 weeks · average</h4>
+          <div class="chart-wrap" id="chart-bars"></div>
+          <h4>Heatmap · last 12 weeks</h4>
+          <div class="chart-wrap" id="chart-heat"></div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="cloud-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3>Cloud setup (Supabase)</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <p>BEE syncs across your devices via your own free Supabase project.</p>
+          <ol class="small">
+            <li>Create a free account at <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> and start a new project.</li>
+            <li>In the project, open <em>SQL editor</em>, paste the contents of <a href="./supabase.sql" target="_blank" rel="noopener"><code>supabase.sql</code></a> from this repo, and run it.</li>
+            <li>Go to <em>Project Settings → API</em>. Copy the <strong>Project URL</strong> and the <strong>anon</strong> public key.</li>
+            <li>Paste both below, then sign in with your email.</li>
+          </ol>
+          <label>
+            Supabase Project URL
+            <input type="url" id="supabase-url" placeholder="https://YOUR-PROJECT.supabase.co" />
+          </label>
+          <label>
+            Supabase anon key
+            <input type="text" id="supabase-key" placeholder="eyJhbGciOi…" />
+          </label>
+          <div class="actions-row">
+            <button type="button" id="save-cloud" class="primary">Save</button>
+            <button type="button" class="ghost" id="test-cloud">Test connection</button>
+            <button type="button" class="ghost danger" id="clear-cloud">Disconnect</button>
+          </div>
+          <p class="muted small" id="cloud-feedback"></p>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="signin-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3>Sign in</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <p>Enter your email — we'll send a magic link. Click it and you're in.</p>
+          <label>
+            Email
+            <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <div class="actions-row">
+            <button type="button" id="send-magic" class="primary">Send magic link</button>
+          </div>
+          <p class="muted small" id="signin-feedback"></p>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="sheets-modal" class="modal">
       <form method="dialog">
         <header>
@@ -149,12 +253,11 @@
           <button value="close" aria-label="Close">×</button>
         </header>
         <div class="modal-body">
-          <p>BEE can push each day's log to a Google Sheet so you can track effectiveness across weeks and months.</p>
+          <p>Optional: push each day's log to a Google Sheet via a small Apps Script.</p>
           <ol class="small">
-            <li>Create a new Google Sheet.</li>
-            <li>Extensions → Apps Script. Paste the code from <code>google-apps-script.js</code> (in this repo) and save.</li>
+            <li>Create a Google Sheet.</li>
+            <li>Extensions → Apps Script. Paste <code>google-apps-script.js</code> from this repo and save.</li>
             <li>Deploy → New deployment → <em>Web app</em>. Execute as <em>Me</em>, access <em>Anyone</em>. Copy the URL.</li>
-            <li>Paste the URL below.</li>
           </ol>
           <label>
             Web app URL
@@ -162,7 +265,7 @@
           </label>
           <label>
             Optional shared secret
-            <input type="text" id="sheets-secret" placeholder="optional — must match SECRET in Apps Script" />
+            <input type="text" id="sheets-secret" placeholder="optional" />
           </label>
           <div class="actions-row">
             <button type="button" id="save-sheets">Save</button>
@@ -192,10 +295,11 @@
     </dialog>
 
     <footer>
-      <small>v1 · data stored on this device · <a href="#" id="wipe">wipe local data</a></small>
+      <small>v2 · <span id="footer-account">local only</span> · <a href="#" id="wipe">wipe local data</a></small>
     </footer>
 
-    <script src="quotes.js?v=4"></script>
-    <script src="app.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="quotes.js?v=5"></script>
+    <script src="app.js?v=5"></script>
   </body>
 </html>

@@ -3,8 +3,9 @@
 **BEE** stands for **Becoming Effective Executives**.
 
 A static, single-page PWA inspired by Peter Drucker's *The Effective Executive*.
-30-minute time-log with plan/actual columns, scoring 1 point per followed block,
-target 80% effectiveness.
+15-minute time-log with plan/actual columns, scoring 1 point per followed block,
+target 80% effectiveness. Built-in 15-min focus timer with a Web Audio bell.
+Charts (line + weekly bars + heatmap) in a Trends modal.
 
 **Live URL:** https://naamdog.github.io/Druckers-BEE/
 **Hosting:** GitHub Pages, deployed from `main` / root.
@@ -12,18 +13,23 @@ target 80% effectiveness.
 ## Stack
 
 - No build step. Plain HTML/CSS/vanilla JS.
-- Data persisted in `localStorage` under key `bee.v1`.
-- Optional Google Sheets sync via a user-hosted Apps Script web app
-  (`google-apps-script.js`).
+- Local-first: every change writes `localStorage` under key `bee.v1`.
+- Cloud sync (optional): user-owned Supabase project. Schema in
+  `supabase.sql`. JS client loaded from jsDelivr UMD. Magic-link auth.
+  Each day is one row in `bee_days(user_id, date, plans jsonb,
+  actuals jsonb)` with row-level security scoped to `auth.uid()`.
+- Legacy Google Sheets push is still available behind the `<details>`
+  in the Export card; don't expand its surface.
 
 ## File map
 
 ```
-index.html              markup, modals, dialogs
-styles.css              light/dark theme, mobile-first
-app.js                  state, slot rendering, scoring, export, sheets push
+index.html              markup, timer pill, modals
+styles.css              light/dark theme, charts, timer pill
+app.js                  one IIFE; sections separated by big banners
 quotes.js               Drucker quotes, deterministic daily rotation
-google-apps-script.js   paste into Apps Script for Sheets sync
+supabase.sql            schema + RLS — run once in user's project
+google-apps-script.js   legacy Apps Script for Sheets export
 manifest.webmanifest    PWA metadata
 ```
 
@@ -53,3 +59,8 @@ manifest.webmanifest    PWA metadata
   `http://localhost:8080`.
 - **Wipe local data while testing:** click "wipe local data" in the footer, or
   `localStorage.removeItem('bee.v1')` in the dev console.
+- **Cache-bust on style/JS changes:** bump the `?v=N` query in
+  `index.html`'s `styles.css` / `app.js` / `quotes.js` references.
+  iOS PWAs cache aggressively without it.
+- **Slot granularity:** 15 minutes — 96 slots/day. The 30-min → 15-min
+  migration runs once per device against `state.days`. Don't undo it.
