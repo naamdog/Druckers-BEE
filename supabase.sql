@@ -52,3 +52,32 @@ drop trigger if exists bee_days_set_updated_at on public.bee_days;
 create trigger bee_days_set_updated_at
   before update on public.bee_days
   for each row execute function public.bee_set_updated_at();
+
+-- ---------- Board (Trello-style task lists) ----------
+create table if not exists public.bee_board (
+  user_id    uuid        primary key references auth.users(id) on delete cascade,
+  payload    jsonb       not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.bee_board enable row level security;
+
+drop policy if exists "bee_board own row select" on public.bee_board;
+drop policy if exists "bee_board own row insert" on public.bee_board;
+drop policy if exists "bee_board own row update" on public.bee_board;
+drop policy if exists "bee_board own row delete" on public.bee_board;
+
+create policy "bee_board own row select"
+  on public.bee_board for select using (auth.uid() = user_id);
+create policy "bee_board own row insert"
+  on public.bee_board for insert with check (auth.uid() = user_id);
+create policy "bee_board own row update"
+  on public.bee_board for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "bee_board own row delete"
+  on public.bee_board for delete using (auth.uid() = user_id);
+
+drop trigger if exists bee_board_set_updated_at on public.bee_board;
+
+create trigger bee_board_set_updated_at
+  before update on public.bee_board
+  for each row execute function public.bee_set_updated_at();

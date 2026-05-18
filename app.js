@@ -943,7 +943,300 @@
   }
   async function fullSync() {
     await pullAll();
+    await pullBoard();
     await pushAll();
+    await pushBoard();
+  }
+
+  // ============================================================
+  // Board (Trello-style task lists)
+  // ============================================================
+  const DEFAULT_LISTS = [
+    { id: "today", name: "Today" },
+    { id: "inbox", name: "Inbox" },
+    { id: "week",  name: "This week" },
+    { id: "done",  name: "Done" }
+  ];
+  let cardEditing = null; // id of card open in edit modal, or null
+
+  function newId() { return Math.random().toString(36).slice(2, 10); }
+
+  function ensureBoard() {
+    if (!state.board || typeof state.board !== "object") {
+      state.board = { lists: DEFAULT_LISTS.map(l => ({ ...l })), cards: [] };
+    }
+    if (!Array.isArray(state.board.lists) || !state.board.lists.length) {
+      state.board.lists = DEFAULT_LISTS.map(l => ({ ...l }));
+    }
+    if (!state.board.lists.some(l => l.id === "today")) {
+      state.board.lists.unshift({ id: "today", name: "Today" });
+    }
+    if (!Array.isArray(state.board.cards)) state.board.cards = [];
+  }
+
+  function addCard(listId, title) {
+    ensureBoard();
+    state.board.cards.push({
+      id: newId(),
+      listId,
+      title: title.trim(),
+      note: "",
+      createdAt: new Date().toISOString(),
+      completedAt: null
+    });
+    saveState();
+    scheduleBoardPush();
+  }
+  function moveCard(cardId, toListId) {
+    const c = state.board.cards.find(x => x.id === cardId);
+    if (!c) return;
+    c.listId = toListId;
+    c.completedAt = toListId === "done" ? new Date().toISOString() : null;
+    saveState();
+    scheduleBoardPush();
+  }
+  function deleteCard(cardId) {
+    state.board.cards = state.board.cards.filter(c => c.id !== cardId);
+    saveState();
+    scheduleBoardPush();
+  }
+  function updateCard(cardId, patch) {
+    const c = state.board.cards.find(x => x.id === cardId);
+    if (!c) return;
+    Object.assign(c, patch);
+    saveState();
+    scheduleBoardPush();
+  }
+  function addList(name) {
+    ensureBoard();
+    const trimmed = (name || "").trim();
+    if (!trimmed) return;
+    state.board.lists.push({ id: newId(), name: trimmed });
+    saveState();
+    scheduleBoardPush();
+  }
+  function renameList(listId, name) {
+    const l = state.board.lists.find(x => x.id === listId);
+    if (!l) return;
+    l.name = name.trim() || l.name;
+    saveState();
+    scheduleBoardPush();
+  }
+  function deleteList(listId) {
+    if (["today", "done"].includes(listId)) return; // protect core lists
+    // Move any cards on this list back to Inbox (or create one if missing).
+    if (!state.board.lists.some(l => l.id === "inbox")) {
+      state.board.lists.push({ id: "inbox", name: "Inbox" });
+    }
+    for (const c of state.board.cards) if (c.listId === listId) c.listId = "inbox";
+    state.board.lists = state.board.lists.filter(l => l.id !== listId);
+    saveState();
+    scheduleBoardPush();
+  }
+
+  function openBoard() {
+    ensureBoard();
+    renderBoard();
+    $("#board-modal").showModal();
+  }
+
+  function renderBoard() {
+    ensureBoard();
+    const body = $("#board-body");
+    body.innerHTML = "";
+    for (const list of state.board.lists) {
+      body.appendChild(renderBoardList(list));
+    }
+  }
+
+  function renderBoardList(list) {
+    const section = document.createElement("section");
+    section.className = "board-list";
+    if (list.id === "today") section.classList.add("is-today");
+    if (list.id === "done")  section.classList.add("is-done");
+    section.dataset.listId = list.id;
+
+    const cards = state.board.cards.filter(c => c.listId === list.id);
+
+    const head = document.createElement("div");
+    head.className = "board-list-head";
+    const h = document.createElement("h4");
+    const name = document.createElement("input");
+    name.className = "list-name";
+    name.type = "text";
+    name.value = list.name;
+    name.readOnly = ["today", "inbox", "week", "done"].includes(list.id);
+    name.addEventListener("change", () => renameList(list.id, name.value));
+    name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); name.blur(); } });
+    h.appendChild(name);
+    const count = document.createElement("small");
+    count.textContent = String(cards.length);
+    h.appendChild(count);
+    head.appendChild(h);
+
+    if (!["today", "done"].includes(list.id)) {
+      const menuBtn = document.createElement("button");
+      menuBtn.className = "list-menu-btn ghost";
+      menuBtn.type = "button";
+      menuBtn.title = "Remove list";
+      menuBtn.textContent = "🗑";
+      menuBtn.addEventListener("click", () => {
+        if (confirm(`Remove list "${list.name}"? Cards move to Inbox.`)) {
+          deleteList(list.id);
+          renderBoard();
+        }
+      });
+      head.appendChild(menuBtn);
+    }
+    section.appendChild(head);
+
+    const cardsWrap = document.createElement("div");
+    cardsWrap.className = "board-cards";
+    for (const c of cards) cardsWrap.appendChild(renderCard(c, list.id));
+    section.appendChild(cardsWrap);
+
+    const form = document.createElement("form");
+    form.className = "board-add";
+    form.innerHTML = `<input type="text" placeholder="Add a card…" />`;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = form.querySelector("input");
+      const v = input.value.trim();
+      if (!v) return;
+      addCard(list.id, v);
+      input.value = "";
+      renderBoard();
+    });
+    section.appendChild(form);
+    return section;
+  }
+
+  function renderCard(c, listId) {
+    const art = document.createElement("article");
+    art.className = "board-card";
+    if (listId === "done") art.classList.add("is-done");
+    art.dataset.cardId = c.id;
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+    const title = document.createElement("div");
+    title.className = "card-title";
+    title.textContent = c.title;
+    body.appendChild(title);
+    if (c.note) {
+      const note = document.createElement("div");
+      note.className = "card-note";
+      note.textContent = c.note;
+      body.appendChild(note);
+    }
+    art.appendChild(body);
+
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+
+    if (listId !== "today") {
+      const todayBtn = document.createElement("button");
+      todayBtn.type = "button";
+      todayBtn.className = "card-action today";
+      todayBtn.title = "Move to Today";
+      todayBtn.textContent = "★";
+      todayBtn.addEventListener("click", (e) => { e.stopPropagation(); moveCard(c.id, "today"); renderBoard(); });
+      actions.appendChild(todayBtn);
+    }
+    if (listId !== "done") {
+      const doneBtn = document.createElement("button");
+      doneBtn.type = "button";
+      doneBtn.className = "card-action done-btn";
+      doneBtn.title = "Mark done";
+      doneBtn.textContent = "✓";
+      doneBtn.addEventListener("click", (e) => { e.stopPropagation(); moveCard(c.id, "done"); renderBoard(); });
+      actions.appendChild(doneBtn);
+    }
+
+    art.appendChild(actions);
+    art.addEventListener("click", () => openCardEdit(c.id));
+    return art;
+  }
+
+  function openCardEdit(cardId) {
+    ensureBoard();
+    const c = state.board.cards.find(x => x.id === cardId);
+    if (!c) return;
+    cardEditing = cardId;
+    $("#card-title-input").value = c.title || "";
+    $("#card-note-input").value = c.note || "";
+    const sel = $("#card-list-input");
+    sel.innerHTML = state.board.lists.map(l => `<option value="${l.id}" ${l.id === c.listId ? "selected" : ""}>${escapeHtml(l.name)}</option>`).join("");
+    $("#card-modal").showModal();
+    setTimeout(() => $("#card-title-input").focus(), 20);
+  }
+  function wireCardModal() {
+    $("#card-save").addEventListener("click", () => {
+      if (!cardEditing) return;
+      const title = $("#card-title-input").value.trim();
+      const note = $("#card-note-input").value.trim();
+      const listId = $("#card-list-input").value;
+      if (!title) { alert("Title is required."); return; }
+      updateCard(cardEditing, { title, note, listId });
+      cardEditing = null;
+      $("#card-modal").close();
+      renderBoard();
+    });
+    $("#card-today").addEventListener("click", () => {
+      if (!cardEditing) return;
+      moveCard(cardEditing, "today");
+      cardEditing = null;
+      $("#card-modal").close();
+      renderBoard();
+    });
+    $("#card-delete").addEventListener("click", () => {
+      if (!cardEditing) return;
+      if (!confirm("Delete this card?")) return;
+      deleteCard(cardEditing);
+      cardEditing = null;
+      $("#card-modal").close();
+      renderBoard();
+    });
+  }
+
+  // Sync
+  let boardPushTimer = null;
+  function scheduleBoardPush() {
+    if (!session?.user) return;
+    if (boardPushTimer) clearTimeout(boardPushTimer);
+    boardPushTimer = setTimeout(pushBoard, 1000);
+  }
+  async function pushBoard() {
+    const sb = getSupabase();
+    if (!sb || !session?.user) return;
+    ensureBoard();
+    try {
+      const { error } = await sb.from("bee_board").upsert({
+        user_id: session.user.id,
+        payload: state.board
+      }, { onConflict: "user_id" });
+      if (error) throw error;
+    } catch (e) {
+      console.warn("pushBoard failed", e);
+    }
+  }
+  async function pullBoard() {
+    const sb = getSupabase();
+    if (!sb || !session?.user) return;
+    try {
+      const { data, error } = await sb.from("bee_board")
+        .select("payload")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.payload) {
+        state.board = data.payload;
+        ensureBoard();
+        saveState();
+      }
+    } catch (e) {
+      console.warn("pullBoard failed", e);
+    }
   }
 
   // Auth
@@ -1212,6 +1505,11 @@
   function wireButtons() {
     $("#history-btn").addEventListener("click", openHistory);
     $("#trends-btn").addEventListener("click", openTrends);
+    $("#board-btn").addEventListener("click", openBoard);
+    $("#board-add-list-btn").addEventListener("click", () => {
+      const name = prompt("New list name:");
+      if (name) { addList(name); renderBoard(); }
+    });
     $("#export-csv").addEventListener("click", exportCSV);
     $("#export-json").addEventListener("click", exportJSON);
     $("#copy-text").addEventListener("click", copyTodayAsText);
@@ -1274,6 +1572,8 @@
     wireCloudModal();
     wireAuthView();
     setAuthMode("signin");
+    wireCardModal();
+    ensureBoard();
     wireTimer();
     renderAll();
     maybeShowPlanTomorrow();
