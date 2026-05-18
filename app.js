@@ -1047,6 +1047,55 @@
     for (const list of state.board.lists) {
       body.appendChild(renderBoardList(list));
     }
+    attachBoardSortables();
+  }
+
+  // Attach drag-and-drop to every list's card column. Cards can move
+  // between lists (group "cards"). On touch we add a small delay so a
+  // plain tap still opens the card editor.
+  let boardSortables = [];
+  function attachBoardSortables() {
+    for (const s of boardSortables) { try { s.destroy(); } catch {} }
+    boardSortables = [];
+    if (!window.Sortable) return;
+    for (const col of $$(".board-cards")) {
+      boardSortables.push(window.Sortable.create(col, {
+        group: "bee-cards",
+        animation: 160,
+        delay: 180,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 4,
+        ghostClass: "card-ghost",
+        chosenClass: "card-chosen",
+        dragClass: "card-dragging",
+        onAdd: captureBoardOrder,
+        onUpdate: captureBoardOrder,
+        onEnd: () => { /* visual cleanup handled by class swap */ }
+      }));
+    }
+  }
+
+  // After any drag, walk the DOM in display order and rebuild
+  // state.board.cards so listId + sequence match what the user sees.
+  function captureBoardOrder() {
+    const next = [];
+    for (const listEl of $$(".board-list")) {
+      const listId = listEl.dataset.listId;
+      for (const cardEl of listEl.querySelectorAll(".board-card")) {
+        const id = cardEl.dataset.cardId;
+        const card = state.board.cards.find(c => c.id === id);
+        if (!card) continue;
+        card.listId = listId;
+        card.completedAt = listId === "done"
+          ? (card.completedAt || new Date().toISOString())
+          : null;
+        next.push(card);
+      }
+    }
+    state.board.cards = next;
+    saveState();
+    scheduleBoardPush();
+    renderBoard();
   }
 
   function renderBoardList(list) {
