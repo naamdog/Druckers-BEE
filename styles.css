@@ -742,20 +742,16 @@ button.link:hover { color: var(--ink); border-color: transparent; }
 .page-header .ghost { padding: 8px 12px; }
 
 #board-body {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
   padding-bottom: 24px;
+  align-items: start;
 }
-@media (min-width: 720px) {
+@media (min-width: 560px) {
   #board-body {
-    flex-direction: row;
-    align-items: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
-  .board-list { flex: 0 0 280px; }
 }
 
 .board-list {
