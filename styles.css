@@ -722,6 +722,126 @@ button.link:hover { color: var(--ink); border-color: transparent; }
 .heat-cell.l3 { fill: var(--green); opacity: 0.6; }
 .heat-cell.l4 { fill: var(--green); }
 
+/* ---------- Board (Trello-style) ---------- */
+.board-header-actions { display: flex; gap: 8px; align-items: center; }
+.board-header-actions button[value="close"] {
+  border: 0; background: transparent; font-size: 22px; padding: 0 8px;
+}
+
+#board-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+}
+@media (min-width: 720px) {
+  #board-body {
+    flex-direction: row;
+    align-items: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .board-list { flex: 0 0 280px; }
+}
+
+.board-list {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.board-list.is-today { box-shadow: 0 0 0 2px var(--gold); }
+.board-list.is-done .board-cards { opacity: 0.78; }
+
+.board-list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px; gap: 8px;
+}
+.board-list-head h4 {
+  margin: 0; font-family: var(--font-serif); font-size: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.board-list-head .list-name {
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  padding: 2px 4px;
+  border-radius: 4px;
+  min-width: 0;
+  width: 100%;
+  outline: none;
+}
+.board-list-head .list-name:focus { background: var(--surface); }
+.board-list-head small { color: var(--muted); font-weight: 400; }
+.list-menu-btn {
+  width: 28px; height: 28px; padding: 0; font-size: 14px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+
+.board-cards { display: flex; flex-direction: column; gap: 6px; min-height: 4px; }
+
+.board-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 80ms ease;
+}
+.board-card:hover { border-color: var(--ink-soft); }
+.board-card:active { transform: scale(0.99); }
+.board-card.is-done .card-title { text-decoration: line-through; color: var(--muted); }
+
+.card-body { flex: 1; min-width: 0; }
+.card-title {
+  font-size: 14px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+.card-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  word-break: break-word;
+}
+.card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.card-action {
+  width: 30px; height: 30px;
+  padding: 0; font-size: 13px;
+  border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.card-action.today { color: var(--gold); border-color: var(--gold); }
+.card-action.today:hover { background: var(--gold); color: #fff; }
+.card-action.done-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+
+.board-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.board-add input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+}
+.board-add input:focus { border-style: solid; border-color: var(--gold); }
+.board-add button {
+  padding: 8px 10px; font-size: 13px; border-radius: 8px;
+}
+
 /* ---------- Wider screens ---------- */
 @media (min-width: 560px) {
   .slot { grid-template-columns: 56px 1fr auto; padding: 6px 14px; }

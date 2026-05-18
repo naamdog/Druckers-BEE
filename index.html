@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1e2a38" />
     <title>BEE — Becoming Effective Executives</title>
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=8" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231e2a38'/><text x='32' y='42' text-anchor='middle' font-family='Georgia,serif' font-size='32' fill='%23c8963e'>B</text></svg>" />
   </head>
@@ -143,6 +143,7 @@
         <button class="ghost" id="scroll-now-btn" title="Jump to now">⤓ Now</button>
         <div class="spacer"></div>
         <button class="ghost" id="trends-btn">Trends</button>
+        <button class="ghost" id="board-btn">Board</button>
         <button class="ghost" id="history-btn">History</button>
       </section>
 
@@ -236,6 +237,47 @@
       </form>
     </dialog>
 
+    <dialog id="board-modal" class="modal modal-wide">
+      <form method="dialog">
+        <header>
+          <h3>Board</h3>
+          <div class="board-header-actions">
+            <button type="button" class="ghost" id="board-add-list-btn">+ List</button>
+            <button value="close" aria-label="Close">×</button>
+          </div>
+        </header>
+        <div class="modal-body" id="board-body"></div>
+      </form>
+    </dialog>
+
+    <dialog id="card-modal" class="modal">
+      <form method="dialog">
+        <header>
+          <h3>Card</h3>
+          <button value="close" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <label>
+            Title
+            <input type="text" id="card-title-input" />
+          </label>
+          <label>
+            Note (optional)
+            <textarea id="card-note-input" rows="3" placeholder="Context, links, sub-steps…"></textarea>
+          </label>
+          <label>
+            List
+            <select id="card-list-input"></select>
+          </label>
+          <div class="actions-row">
+            <button type="button" id="card-save" class="primary">Save</button>
+            <button type="button" class="ghost" id="card-today">→ Today</button>
+            <button type="button" class="ghost danger" id="card-delete">Delete</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="cloud-modal" class="modal">
       <form method="dialog">
         <header>
@@ -322,7 +364,7 @@
     </div><!-- /#app-view -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="quotes.js?v=7"></script>
-    <script src="app.js?v=7"></script>
+    <script src="quotes.js?v=8"></script>
+    <script src="app.js?v=8"></script>
   </body>
 </html>
