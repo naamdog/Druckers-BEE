@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1e2a38" />
     <title>BEE — Becoming Effective Executives</title>
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <link rel="stylesheet" href="styles.css?v=12" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231e2a38'/><text x='32' y='42' text-anchor='middle' font-family='Georgia,serif' font-size='32' fill='%23c8963e'>B</text></svg>" />
   </head>
@@ -92,6 +92,7 @@
 
     <main>
       <section id="day-view">
+      <section class="card constraint" id="constraint-widget"></section>
       <section class="card quote">
         <div class="quote-label">Drucker on effectiveness</div>
         <blockquote id="quote">Loading…</blockquote>
@@ -267,6 +268,11 @@
             List
             <select id="card-list-input"></select>
           </label>
+          <div class="card-tags-label">Tags</div>
+          <div id="card-tags-picker" class="card-tags-picker"></div>
+          <div class="actions-row">
+            <button type="button" id="card-set-constraint" class="ghost wide">★ Set as today's One Thing</button>
+          </div>
           <div class="actions-row">
             <button type="button" id="card-save" class="primary">Save</button>
             <button type="button" class="ghost" id="card-today">→ Today</button>
@@ -363,7 +369,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
-    <script src="quotes.js?v=11"></script>
-    <script src="app.js?v=11"></script>
+    <script src="quotes.js?v=12"></script>
+    <script src="app.js?v=12"></script>
   </body>
 </html>
