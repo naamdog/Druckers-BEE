@@ -1583,16 +1583,6 @@
     $("#copy-text").addEventListener("click", copyTodayAsText);
     $("#push-sheets").addEventListener("click", pushToSheets);
     $("#configure-sheets").addEventListener("click", openSheetsModal);
-    $("#wipe").addEventListener("click", (e) => {
-      e.preventDefault();
-      if (confirm("Wipe all BEE data on this device? (Cloud data, if any, is untouched.) ")) {
-        localStorage.removeItem(STORAGE_KEY);
-        state = loadState();
-        currentDateKey = todayKey();
-        renderAll();
-        renderCloudStatus();
-      }
-    });
   }
 
   function renderAll() {
