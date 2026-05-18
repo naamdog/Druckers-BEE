@@ -1035,9 +1035,28 @@
   }
 
   function openBoard() {
-    ensureBoard();
-    renderBoard();
-    $("#board-modal").showModal();
+    if (location.hash !== "#/board") location.hash = "#/board";
+    else applyRoute();
+  }
+
+  // Hash-based routing. The board lives at #/board so it's a real page
+  // with a working back button; everything else is the day view.
+  function applyRoute() {
+    const onBoard = location.hash === "#/board" || location.hash === "#board";
+    $("#day-view").hidden = onBoard;
+    $("#board-view").hidden = !onBoard;
+    if (onBoard) {
+      ensureBoard();
+      renderBoard();
+      window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    }
+  }
+  function wireRouter() {
+    window.addEventListener("hashchange", applyRoute);
+    $("#board-back").addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else location.hash = "";
+    });
   }
 
   function renderBoard() {
@@ -1623,8 +1642,10 @@
     setAuthMode("signin");
     wireCardModal();
     ensureBoard();
+    wireRouter();
     wireTimer();
     renderAll();
+    applyRoute();
     maybeShowPlanTomorrow();
     initAuth();
     // Refresh the "now" indicator each minute.

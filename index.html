@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1e2a38" />
     <title>BEE — Becoming Effective Executives</title>
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=10" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231e2a38'/><text x='32' y='42' text-anchor='middle' font-family='Georgia,serif' font-size='32' fill='%23c8963e'>B</text></svg>" />
   </head>
@@ -91,6 +91,7 @@
     </div>
 
     <main>
+      <section id="day-view">
       <section class="card quote">
         <div class="quote-label">Drucker on effectiveness</div>
         <blockquote id="quote">Loading…</blockquote>
@@ -206,6 +207,16 @@
           <li>Blank blocks don't score — only planned blocks count.</li>
         </ul>
       </section>
+      </section><!-- /#day-view -->
+
+      <section id="board-view" hidden>
+        <div class="page-header">
+          <button class="ghost" id="board-back" type="button">‹ Back</button>
+          <h2>Board</h2>
+          <button class="ghost" id="board-add-list-btn" type="button">+ List</button>
+        </div>
+        <div id="board-body"></div>
+      </section>
     </main>
 
     <!-- Modals -->
@@ -234,19 +245,6 @@
           <h4>Heatmap · last 12 weeks</h4>
           <div class="chart-wrap" id="chart-heat"></div>
         </div>
-      </form>
-    </dialog>
-
-    <dialog id="board-modal" class="modal modal-wide">
-      <form method="dialog">
-        <header>
-          <h3>Board</h3>
-          <div class="board-header-actions">
-            <button type="button" class="ghost" id="board-add-list-btn">+ List</button>
-            <button value="close" aria-label="Close">×</button>
-          </div>
-        </header>
-        <div class="modal-body" id="board-body"></div>
       </form>
     </dialog>
 
@@ -365,7 +363,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
-    <script src="quotes.js?v=9"></script>
-    <script src="app.js?v=9"></script>
+    <script src="quotes.js?v=10"></script>
+    <script src="app.js?v=10"></script>
   </body>
 </html>

@@ -722,17 +722,30 @@ button.link:hover { color: var(--ink); border-color: transparent; }
 .heat-cell.l3 { fill: var(--green); opacity: 0.6; }
 .heat-cell.l4 { fill: var(--green); }
 
-/* ---------- Board (Trello-style) ---------- */
-.board-header-actions { display: flex; gap: 8px; align-items: center; }
-.board-header-actions button[value="close"] {
-  border: 0; background: transparent; font-size: 22px; padding: 0 8px;
+/* ---------- Board page ---------- */
+#day-view[hidden], #board-view[hidden] { display: none; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 12px;
 }
+.page-header h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  flex: 1;
+  text-align: center;
+}
+.page-header .ghost { padding: 8px 12px; }
 
 #board-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 14px;
+  padding-bottom: 24px;
 }
 @media (min-width: 720px) {
   #board-body {
@@ -740,6 +753,7 @@ button.link:hover { color: var(--ink); border-color: transparent; }
     align-items: flex-start;
     overflow-x: auto;
     flex-wrap: nowrap;
+    padding-bottom: 16px;
   }
   .board-list { flex: 0 0 280px; }
 }
