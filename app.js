@@ -865,6 +865,8 @@
     $("#signin-btn").hidden = !hasConfig || signedIn;
     $("#signout-btn").hidden = !signedIn;
     $("#sync-now-btn").hidden = !signedIn;
+    const importRow = $("#import-mm-row");
+    if (importRow) importRow.hidden = !!state.board?.importedMikeMaitland;
     if (!hasConfig) {
       el.innerHTML = `<span class="cloud-status-dot"></span>Local only — cloud not configured.`;
       footer.textContent = "local only";
@@ -1635,6 +1637,188 @@
     }
   }
 
+  // ---------- One-shot import from naamdog/mike-maitland-tasks ----------
+  // Source: https://github.com/naamdog/mike-maitland-tasks
+  // Captured 2026-05-18. Each item is [title, codes].
+  // Codes: $ Q I D L are mapped to BEE tags; P S M X are timing/meta and
+  // are dropped to keep the chip set clean.
+  const MM_IMPORT = [
+    { src: "🔥 Tier 1 — Do Now",        targetList: "today",   priority: true, items: [
+      ["Fix Google indexing problem (20 min – 2 hrs, could unlock 50–200 leads/mo)", ["Q","$","S","D"]],
+      ["Finish the Salary vs Living Cost Guide PDF (you're 50% done)", ["P","$","S","D"]],
+      ["Build & script the Weekly Webinar — Thursday 8am Bangkok (US evening)", ["P","$","S","X"]],
+      ["Launch BYU-targeted ads (returned missionaries)", ["Q","$","S","D"]],
+    ]},
+    { src: "🛠 Tier 2 — Systemization",  targetList: "week",    items: [
+      ["Customer Journey Spreadsheet — map Lead → Alumni touchpoints (Scott can help)", ["P","I","M","D"]],
+      ["Hot Lead System — automated sequence for people who interviewed but didn't pay", ["P","$","M","D"]],
+      ["YouTube backlog — script & film first 10 search-intent videos", ["P","$","M","D"]],
+      ["Set up the Founder Dashboard (8 numbers, weekly Friday review)", ["Q","I","S","X"]],
+      ["Add Facebook pixel + retargeting to the funnel", ["Q","$","S","D"]],
+      ["Build the 'Decision Bridge' step between salary guide and apply", ["Q","$","S","X"]],
+      ["Welcome center for booked teachers (excitement + onboarding)", ["P","I","M","D"]],
+    ]},
+    { src: "🌱 Tier 3 — Strategic Moat", targetList: "someday", items: [
+      ["Thailand TEFL Pilot — run your own in-house course (rebuild 'brand in hearts')", ["P","$","L","X"]],
+      ["Affiliate / Referral program — incentivize teachers to refer & create content", ["P","$","L","D"]],
+      ["Teacher community + meetups (the unreasonable hospitality flywheel)", ["P","I","L","D"]],
+      ["University ambassadors program", ["P","$","M","D"]],
+      ["Career advisors outreach", ["P","$","M","D"]],
+    ]},
+    { src: "❌ Stop Doing", targetList: "stop", items: [
+      ["Mike Volpe Project — low pay, high bandwidth, helps a competitor. DROP.", ["Q","I","S","X"]],
+      ["The 50 marketing ideas — if it isn't Google, YouTube, or Webinar, ignore for now", ["Q","I","S","X"]],
+      ["Digital Marketing program as standalone product — defer to teacher ecosystem upsell", ["P","I","L","X"]],
+      ["Remove all funnels from ClickFunnels and cancel the subscription", ["Q","I","S","D"]],
+    ]},
+    { src: "📊 Founder Dashboard", targetList: { id: "founder",   name: "📊 Founder Dashboard" }, items: [
+      ["Visitors (top of funnel)", ["Q","I","S","X"]],
+      ["Leads (Salary Guide downloads)", ["Q","I","S","X"]],
+      ["Applications (webinar/email success)", ["Q","I","S","X"]],
+      ["Interviews (show-up rate)", ["Q","I","S","X"]],
+      ["Bookings (revenue events)", ["Q","$","S","X"]],
+      ["Revenue ($$$)", ["Q","$","S","X"]],
+      ["Content Output (YouTube/social posts)", ["Q","I","S","X"]],
+      ["Referrals (flywheel health)", ["Q","I","S","X"]],
+    ]},
+    { src: "TEFL Heaven — Offer", targetList: { id: "tefl-offer", name: "TEFL Heaven — Offer" }, items: [
+      ["Create an SLO (Self-Liquidating Offer) for TEFL Heaven", ["P","$","M","X"]],
+      ["Rebrand the website to teacher-creators with digital marketing front-and-centre", ["P","$","M","D"]],
+      ["Create a really great ad offering a really great lead magnet", ["P","$","S","D"]],
+      ["Cart upsell: $100 one-click upsell on the booking form right after they pay", ["Q","$","S","D"]],
+      ["Improve the program PDFs so they're really great", ["P","I","M","D"]],
+      ["Improve the programs page so each is accurate", ["P","I","M","D"]],
+      ["Create something they receive within 48 hours of booking", ["P","$","M","D"]],
+      ["Do an MBTI offer for TEFL Heaven", ["P","$","M","X"]],
+      ["Cheap TEFL course as a lead magnet", ["P","$","M","D"]],
+    ]},
+    { src: "TEFL Heaven — Marketing", targetList: { id: "tefl-mkt", name: "TEFL Heaven — Marketing" }, items: [
+      ["Create YouTube scripts for TEFL Heaven", ["P","$","S","X"]],
+      ["Create mass marketing emails for TEFL Heaven", ["P","$","S","D"]],
+      ["'Day in the Life' advert using SeeDance 2.0", ["P","$","S","D"]],
+      ["More aggressive traffic plan with SeeDance video ads", ["P","$","M","D"]],
+      ["Expand the topic above TEFL Heaven — meta-topic to capture more market", ["P","$","L","X"]],
+      ["Challenge videos series", ["P","$","M","D"]],
+      ["TikTok reels", ["P","$","M","D"]],
+    ]},
+    { src: "Content Engine", targetList: { id: "content", name: "Content Engine" }, items: [
+      ["Make content the main thing — force it through", ["P","$","S","X"]],
+      ["Ship 10 YouTube videos every week — build the system", ["P","$","M","D"]],
+      ["Build the Script Day / Filming Day / Editing pipeline", ["P","$","M","D"]],
+      ["Apply the same system to all other content types", ["P","$","M","D"]],
+      ["Go through the AI YouTube 'Watch Later' list", ["Q","I","S","X"]],
+      ["Upload footage for Kevin Snook Reels and tell Kate", ["Q","I","S","D"]],
+      ["New way for Kevin's content — content above all things", ["P","$","M","D"]],
+      ["10 high-priority YouTube topics: salary breakdowns, day-in-life, TEFL scams vs real, cost of living, Thailand vs Korea, how to teach abroad, savings, visa, classroom reality, how to get TEFL job", ["P","$","M","D"]],
+    ]},
+    { src: "Websites", targetList: { id: "websites", name: "Websites to Build" }, items: [
+      ["Apologetics website for the CES Letter (+ AI letter to wife)", ["P","I","L","D"]],
+      ["Book of Mormon AI YouTube channel + website", ["P","I","L","D"]],
+      ["MBTI website + YouTube channel", ["P","$","L","D"]],
+      ["Storytelling podcast website + YouTube for Spector Mastermind", ["P","I","L","D"]],
+      ["Kevin Snook website", ["P","I","L","D"]],
+      ["Spector Mastermind website", ["P","I","L","D"]],
+      ["Book of Mormon Red Best Gossamer website", ["P","I","L","D"]],
+      ["Own MBTI + Big Five website with own test, ways to work on weaknesses ($9.99/mo tier)", ["P","$","L","D"]],
+    ]},
+    { src: "AI Workshops", targetList: { id: "ai-ws", name: "AI Workshops & Funnels" }, items: [
+      ["Build funnels for AI in-person workshops", ["P","$","M","D"]],
+      ["Build lead magnets for the workshops", ["P","$","M","D"]],
+      ["Teach SeeDance, Images 2.0 and Claude", ["P","$","M","X"]],
+      ["Great Facebook advert targeting people at FutureDuck", ["Q","$","S","D"]],
+      ["School on the alternative SKOOL platform", ["P","$","L","D"]],
+    ]},
+    { src: "Storytelling Apps", targetList: { id: "story", name: "Storytelling & Language Apps" }, items: [
+      ["Add mnemonics to the language apps", ["P","I","M","D"]],
+      ["Develop Ammon stories — create characters", ["P","I","M","D"]],
+      ["Get the language apps into the kids' hands", ["Q","I","S","X"]],
+      ["Ammon / Book of Mormon graphic novel", ["P","I","L","D"]],
+      ["English language storytelling characters — green screen company", ["P","$","L","D"]],
+      ["Improve the Ammon graphic novel and launch it", ["P","I","M","D"]],
+    ]},
+    { src: "Personal — Spirit", targetList: { id: "p-spirit", name: "Personal — Spirit" }, items: [
+      ["Always follow the majors and minors", ["Q","I","S","X"]],
+      ["Schedule daily time to read visions and apply them", ["Q","I","S","X"]],
+      ["Guitar daily", ["Q","I","S","X"]],
+      ["Tie daily", ["Q","I","S","X"]],
+      ["Pay tithing — really important", ["Q","I","S","X"]],
+      ["Record old memories of me when I was younger", ["P","I","M","X"]],
+    ]},
+    { src: "Personal — Health", targetList: { id: "p-health", name: "Personal — Health & Admin" }, items: [
+      ["Get back on the wagon of health and fitness", ["P","I","M","X"]],
+      ["Get driver's licence", ["Q","I","S","X"]],
+      ["Move my address for my debts", ["Q","I","S","X"]],
+      ["Improve the 'hot beats'", ["Q","I","S","X"]],
+    ]},
+    { src: "Leverage & Focus", targetList: "inbox", items: [
+      ["Work only on highest-leverage things — money + time", ["Q","$","S","X"]],
+      ["Focus on leads and sales right now", ["Q","$","S","X"]],
+      ["Continue building images for the website", ["P","I","M","D"]],
+      ["Run all Kevin coaching calls through AI to extract own frameworks", ["P","I","M","D"]],
+      ["Do the Digital Marketing program (money-creating activity)", ["P","$","M","X"]],
+      ["Create your own Tide Program", ["P","$","L","X"]],
+      ["Build an application of Drucker's 'Effective Executive'", ["P","I","L","X"]],
+      ["Ask Jonny West what you'll be doing on Saturday", ["Q","I","S","X"]],
+    ]},
+  ];
+
+  function mapMmTags(codes, addTier1) {
+    const out = new Set();
+    if (addTier1) out.add("tier1");
+    for (const c of codes) {
+      if (c === "$") out.add("money");
+      else if (c === "Q") out.add("quick");
+      else if (c === "I") out.add("imp");
+      else if (c === "D") out.add("del");
+      else if (c === "L") out.add("deep");
+    }
+    return [...out];
+  }
+
+  function importMikeMaitland() {
+    ensureBoard();
+    if (state.board.importedMikeMaitland) {
+      if (!confirm(`Already imported on ${state.board.importedMikeMaitland}. Add the cards again?`)) return;
+    } else if (!confirm("Import all tasks from naamdog/mike-maitland-tasks into your BEE board? It'll create the section lists and ~80 cards. You can rearrange afterwards.")) {
+      return;
+    }
+    let added = 0, listsCreated = 0;
+    for (const sec of MM_IMPORT) {
+      let listId;
+      if (typeof sec.targetList === "string") {
+        listId = sec.targetList;
+        if (!state.board.lists.some(l => l.id === listId)) {
+          state.board.lists.push({ id: listId, name: listId });
+          listsCreated++;
+        }
+      } else {
+        listId = sec.targetList.id;
+        if (!state.board.lists.some(l => l.id === listId)) {
+          state.board.lists.push({ id: listId, name: sec.targetList.name });
+          listsCreated++;
+        }
+      }
+      for (const [title, codes] of sec.items) {
+        state.board.cards.push({
+          id: newId(),
+          listId,
+          title,
+          note: "",
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+          tags: mapMmTags(codes, sec.priority)
+        });
+        added++;
+      }
+    }
+    state.board.importedMikeMaitland = fmtDateKey(new Date());
+    saveState();
+    scheduleBoardPush();
+    renderBoard();
+    renderCloudStatus();
+    alert(`Imported ${added} cards into ${MM_IMPORT.length} sections (${listsCreated} new lists). Open the Board to see them.`);
+  }
+
   // Auth
   async function initAuth() {
     const sb = getSupabase();
@@ -1906,6 +2090,7 @@
       const name = prompt("New list name:");
       if (name) { addList(name); renderBoard(); }
     });
+    $("#import-mm").addEventListener("click", importMikeMaitland);
     $("#export-csv").addEventListener("click", exportCSV);
     $("#export-json").addEventListener("click", exportJSON);
     $("#copy-text").addEventListener("click", copyTodayAsText);
