@@ -782,7 +782,12 @@ button.link:hover { color: var(--ink); border-color: transparent; }
   color: var(--muted);
 }
 
-.board-cards { display: flex; flex-direction: column; gap: 6px; min-height: 4px; }
+.board-cards { display: flex; flex-direction: column; gap: 6px; min-height: 28px; padding: 2px; border-radius: 8px; transition: background 160ms ease; }
+.board-cards.drag-over { background: var(--gold-soft); }
+.board-card { touch-action: manipulation; }
+.board-card.card-ghost { opacity: 0.35; }
+.board-card.card-chosen { box-shadow: 0 4px 12px rgba(0,0,0,0.18); border-color: var(--gold); cursor: grabbing; }
+.board-card.card-dragging { transform: rotate(1.5deg); }
 
 .board-card {
   background: var(--surface);
