@@ -1177,9 +1177,11 @@
   // between lists (group "cards"). On touch we add a small delay so a
   // plain tap still opens the card editor.
   let boardSortables = [];
+  let listSortable = null;
   function attachBoardSortables() {
     for (const s of boardSortables) { try { s.destroy(); } catch {} }
     boardSortables = [];
+    if (listSortable) { try { listSortable.destroy(); } catch {} listSortable = null; }
     if (!window.Sortable) return;
     for (const col of $$(".board-cards")) {
       boardSortables.push(window.Sortable.create(col, {
@@ -1196,6 +1198,42 @@
         onEnd: () => { /* visual cleanup handled by class swap */ }
       }));
     }
+    // Lists themselves can also be dragged via a dedicated handle on
+    // each list header. North Star sits outside .board-grid so it's
+    // pinned at the top.
+    const grid = $(".board-grid");
+    if (grid) {
+      listSortable = window.Sortable.create(grid, {
+        handle: ".list-drag-handle",
+        animation: 180,
+        ghostClass: "list-ghost",
+        chosenClass: "list-chosen",
+        onEnd: captureListOrder
+      });
+    }
+  }
+
+  // Rebuild state.board.lists from the DOM order. North Star always
+  // stays first; everything else mirrors the grid order; any list not
+  // currently rendered (shouldn't happen) is appended at the end.
+  function captureListOrder() {
+    const grid = $(".board-grid");
+    if (!grid) return;
+    const ids = [...grid.querySelectorAll(":scope > .board-list")].map(el => el.dataset.listId);
+    const byId = new Map(state.board.lists.map(l => [l.id, l]));
+    const next = [];
+    const ns = state.board.lists.find(l => l.id === "northstar");
+    if (ns) next.push(ns);
+    for (const id of ids) {
+      const l = byId.get(id);
+      if (l && l.id !== "northstar") next.push(l);
+    }
+    for (const l of state.board.lists) {
+      if (!next.some(x => x.id === l.id)) next.push(l);
+    }
+    state.board.lists = next;
+    saveState();
+    scheduleBoardPush();
   }
 
   // After any drag, walk the DOM in display order and rebuild
@@ -1249,6 +1287,17 @@
     count.textContent = String(cards.length);
     h.appendChild(count);
     head.appendChild(h);
+
+    // Drag handle for list reordering (North Star is pinned, so no handle).
+    if (list.id !== "northstar") {
+      const handle = document.createElement("button");
+      handle.className = "list-drag-handle";
+      handle.type = "button";
+      handle.title = "Drag to reorder";
+      handle.setAttribute("aria-label", "Reorder list");
+      handle.textContent = "⋮⋮";
+      head.appendChild(handle);
+    }
 
     if (!PROTECTED_LIST_IDS.includes(list.id)) {
       const menuBtn = document.createElement("button");
