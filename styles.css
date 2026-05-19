@@ -944,6 +944,23 @@ button.link:hover { color: var(--ink); border-color: transparent; }
   border-radius: 7px;
   color: var(--muted);
 }
+.list-drag-handle {
+  width: 28px; height: 28px; padding: 0; font-size: 14px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: grab;
+  letter-spacing: -2px;
+}
+.list-drag-handle:hover { color: var(--ink); border-color: var(--ink-soft); }
+.list-drag-handle:active { cursor: grabbing; }
+.board-list.list-ghost { opacity: 0.35; }
+.board-list.list-chosen {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  border-color: var(--gold);
+  cursor: grabbing;
+}
 
 .board-cards { display: flex; flex-direction: column; gap: 6px; min-height: 28px; padding: 2px; border-radius: 8px; transition: background 160ms ease; }
 .board-cards.drag-over { background: var(--gold-soft); }
